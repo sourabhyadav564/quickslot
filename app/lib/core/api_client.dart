@@ -1,7 +1,7 @@
 import 'package:dio/dio.dart';
 
 class ApiClient {
-  static const String _baseUrl = 'http://10.0.2.2:3000'; // Android emulator → localhost
+  static const String _baseUrl = 'http://172.20.10.2:3000'; // Physical device Wi-Fi connection IP
 
   final Dio _dio;
   String _userId = 'user_1';
