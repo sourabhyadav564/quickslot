@@ -27,16 +27,16 @@ flutter pub get
 flutter run        # on emulator/device
 ```
 
-> **Note:** The app uses `http://10.0.2.2:3000` to reach the backend from an Android emulator (maps to `localhost` on the host machine). If running on a physical device, update `_baseUrl` in `app/lib/core/api_client.dart` to your machine's LAN IP.
+> **Note:** The app points to the deployed Railway backend by default. To run against a local server instead, update `_baseUrl` in `app/lib/core/api_client.dart` to `http://10.0.2.2:3000` (Android emulator) or your machine's LAN IP (physical device).
 
-### Seed users (for the double-booking test)
-| User ID | Name |
-|---------|------|
-| `user_1` | Arjun Mehta |
-| `user_2` | Priya Sharma |
-| `user_3` | Rohan Das |
+### Demo accounts (login screen)
+| Username | Password | Name |
+|----------|----------|------|
+| `arjun`  | `arjun123` | Arjun Mehta |
+| `priya`  | `priya123` | Priya Sharma |
+| `rohan`  | `rohan123` | Rohan Das |
 
-Pass as `X-User-Id` header when testing with curl.
+For curl testing, first `POST /auth/login` to get a `userId`, then pass it as `Authorization: Bearer <userId>`.
 
 ---
 
@@ -48,8 +48,9 @@ Swades/
 │   └── src/
 │       ├── db.js               SQLite init, WAL mode, seed
 │       ├── app.js              Express wiring
-│       ├── middleware/auth.js  X-User-Id validation
+│       ├── middleware/auth.js  Bearer token validation
 │       └── routes/
+│           ├── auth.js         POST /auth/login
 │           ├── venues.js       GET /venues, GET /venues/:id/slots
 │           └── bookings.js     POST /bookings, DELETE /bookings/:id
 │                               GET /users/:id/bookings
@@ -58,7 +59,7 @@ Swades/
         ├── core/   api_client, constants, router (GoRouter)
         ├── models/ Freezed data classes (Venue, Slot, Booking)
         ├── providers/ Riverpod providers (auth, venues, slots, bookings)
-        ├── screens/   UserSelect, VenueList, VenueDetail, MyBookings
+        ├── screens/   Login, VenueList, VenueDetail, MyBookings
         └── widgets/   SlotGrid, BookingCard, AppError, AppLoading
 ```
 
@@ -81,7 +82,7 @@ Chosen because:
 ---
 
 ## What I Cut and Why
-- **Full auth (JWT/OAuth):** Replaced with hardcoded users + `X-User-Id` header as the spec allows. Would take 45+ min with no core value for the demo.
+- **JWT/OAuth:** Implemented username + password login with Bearer token auth. Token is the userId (no expiry) — sufficient for a demo; production would use signed JWTs.
 - **Push notifications:** Polling every 5 s gives the same live-update effect without a notification service dependency.
 - **Pagination on venue list:** Only 5 venues seeded; adding pagination would add complexity with no demo value.
 
