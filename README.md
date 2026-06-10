@@ -1,82 +1,106 @@
-QuickSlot — Hiring Hackathon Problem Statement
-Role: Flutter Mobile Developer (with backend skills) · Format: Live, individual · Build time: 6
-hours, then demo + defense round
+# QuickSlot 🏸⚽
 
-Before the event (mandatory — do this at home)
-Come with a fully working setup. No setup time will be given on the day:
-• Flutter SDK installed, flutter doctor clean, Android emulator or a physical device
-working
-• Runtime installed for your backend language of choice (Node / Python / Go / Java / Dart —
-anything)
-• Git, your IDE, and any AI tools you plan to use — installed and logged in
-The problem
-Build QuickSlot — a mini app for booking sports slots (badminton courts / turf grounds). Users
-browse venues, view time slots for a date, and book one.
-The one hard rule: a slot can never be double-booked. If two users tap "Book" on the same slot
-at the same instant, exactly one succeeds and the other gets a clear in-app message. We will test
-this live from two devices.
-Part A — Backend (any language, any database)
-A REST API with real persistence (SQLite / Postgres / MySQL / Mongo — your choice). Seed 3–5
-venues, each with hourly slots from 6 AM to 10 PM.
-Endpoint What it does
-GET /venues List venues
-GET /venues/{id}/slots?
-date=YYYY-MM-DD
+> A sports slot booking mini-app built for the QuickSlot Hiring Hackathon.
+> Book badminton courts and turf grounds — with **zero double-bookings, guaranteed**.
 
-Slots for a date, with status
+---
 
-POST /bookings Book a slot for a user — must be concurrency-
-safe; return correct status codes for success / slot
+## Setup & Running Locally
 
-already taken / invalid input
-GET /users/{id}/bookings A user's bookings
-DELETE /bookings/{id} Cancel a booking
+### Prerequisites
+- Node.js 20+ (installed via nvm: `nvm install 20`)
+- Flutter SDK (3.x)
+- Android emulator or physical device
 
-Keep auth light: hardcoded users plus an X-User-Id header is acceptable. Do not burn time
-building full auth.
+### 1. Start the backend
+```bash
+cd server
+npm install
+node src/index.js
+# API running at http://localhost:3000
+```
 
-Part B — Flutter app
-1. User select / login — keep it simple
-2. Venue list → venue detail — date picker + slot grid, available vs booked clearly visible
-3. Booking flow — confirm → success; if the slot was just taken by someone else, show a
-graceful message and refresh the grid
-4. My Bookings — list with cancel
-Required everywhere: loading, error, and empty states. Any state management (Provider /
-Riverpod / Bloc / GetX) — you will be asked to justify your choice.
-Rules
-1. AI tools (Claude, ChatGPT, Cursor, Copilot...) are allowed and expected — same as
-the real job. But you must understand every line. The defense round includes explaining
-randomly chosen parts of your code and making a small live change to it.
-2. Commit to git at least every 45 minutes with meaningful messages. One giant final commit
-= penalty.
-3. Official framework starters are fine; personal pre-built boilerplates are not.
-4. Everything must run locally on your laptop for the demo (backend + app together).
+### 2. Run the Flutter app
+```bash
+cd app
+flutter pub get
+flutter run        # on emulator/device
+```
 
-Bonus (attempt max 2, only after the core works end-to-end)
-• Slot status updates via polling or websocket (a slot flips to "booked" on another phone
-without restarting)
-• Offline read cache for My Bookings
-• Unit tests for booking logic, or one widget test
-• Dockerized backend
-• Filter slots by time of day
-Deliverables
-1. Git repo (monorepo is fine: /app, /server)
-2. README containing: setup steps, a short architecture note (a paragraph + a photo of a
-whiteboard sketch is fine), what you cut and why, what you'd do with one more day, and an
-AI usage note — what you used AI for and one thing it got wrong that you caught and fixed
-3. 10-min demo + ~15-min defense
-How you'll be evaluated
-• Working core booking flow, demoed on a device
+> **Note:** The app uses `http://10.0.2.2:3000` to reach the backend from an Android emulator (maps to `localhost` on the host machine). If running on a physical device, update `_baseUrl` in `app/lib/core/api_client.dart` to your machine's LAN IP.
 
-• The live double-booking test (two judges, two phones, same slot)
-• Backend & API quality: schema, validation, status codes, your concurrency approach
-• Flutter code quality: structure, state management, no business logic inside widgets,
-error/empty/loading states handled
-• Defense round: explain your decisions, walk through code we pick, implement one small
-new requirement live
-• Judgment: commit history, README honesty, scope decisions
-A smaller app that is correct, well-structured, and fully understood beats a feature-stuffed app you
-can't explain. Cutting scope deliberately — and saying so in the README — is a positive signal.
-Sample day schedule
-9:00 kickoff + Q&A · 9:30–15:30 build (hard code freeze) · 15:45 onwards demos + defense in
-random order · results the same evening or next day
+### Seed users (for the double-booking test)
+| User ID | Name |
+|---------|------|
+| `user_1` | Arjun Mehta |
+| `user_2` | Priya Sharma |
+| `user_3` | Rohan Das |
+
+Pass as `X-User-Id` header when testing with curl.
+
+---
+
+## Architecture
+
+```
+Swades/
+├── server/          Node.js + Express + SQLite backend
+│   └── src/
+│       ├── db.js               SQLite init, WAL mode, seed
+│       ├── app.js              Express wiring
+│       ├── middleware/auth.js  X-User-Id validation
+│       └── routes/
+│           ├── venues.js       GET /venues, GET /venues/:id/slots
+│           └── bookings.js     POST /bookings, DELETE /bookings/:id
+│                               GET /users/:id/bookings
+└── app/             Flutter app
+    └── lib/
+        ├── core/   api_client, constants, router (GoRouter)
+        ├── models/ Freezed data classes (Venue, Slot, Booking)
+        ├── providers/ Riverpod providers (auth, venues, slots, bookings)
+        ├── screens/   UserSelect, VenueList, VenueDetail, MyBookings
+        └── widgets/   SlotGrid, BookingCard, AppError, AppLoading
+```
+
+### Concurrency approach
+SQLite with **`BEGIN IMMEDIATE` transactions**. When two requests race to book the same slot, SQLite's writer-lock ensures only one transaction commits. The loser receives `SQLITE_BUSY` which the API translates to `409 Conflict` with a human-readable message. Verified with two simultaneous `curl` requests — exactly one succeeds, every time.
+
+### State management: Riverpod
+Chosen because:
+- `AsyncNotifier` keeps business logic out of widgets
+- `FamilyAsyncNotifierProvider` cleanly scopes slot data per (venueId, date)
+- Easy to unit-test providers without a widget tree
+- Code-gen via `riverpod_generator` eliminates runtime typos
+
+---
+
+## Bonus Features Implemented
+1. **Slot polling** — `SlotsNotifier` polls every 5 seconds; a booked slot flips to "booked" on the other phone without restarting the app.
+2. **Offline read cache for My Bookings** — on successful fetch, bookings are serialized to `SharedPreferences`. On network failure, stale data is served.
+
+---
+
+## What I Cut and Why
+- **Full auth (JWT/OAuth):** Replaced with hardcoded users + `X-User-Id` header as the spec allows. Would take 45+ min with no core value for the demo.
+- **Push notifications:** Polling every 5 s gives the same live-update effect without a notification service dependency.
+- **Pagination on venue list:** Only 5 venues seeded; adding pagination would add complexity with no demo value.
+
+---
+
+## What I'd Do With One More Day
+- Add WebSocket support for true instant slot updates (replace polling)
+- Implement proper JWT auth with refresh tokens
+- Add unit tests for the booking transaction and Riverpod providers
+- Dockerize the backend (`docker-compose up` for one-command start)
+- Filter slots by morning / afternoon / evening time bands
+
+---
+
+## AI Usage Note
+**Used Claude (Antigravity) for:**
+- Generating boilerplate code (models, providers, screens, Express routes)
+- Debugging the Freezed v3 `@JsonKey` false-positive analyzer warning
+- Writing the SQLite concurrency transaction pattern
+
+**One thing AI got wrong that I caught and fixed:**
+The initial `pubspec.yaml` had `freezed: ^2.5.7` and `freezed_annotation: ^2.4.4`, but `custom_lint ^0.7.5` requires `freezed_annotation ^3.0.0`. The pub solve failed and I debugged the version conflict, upgraded both `freezed` and `freezed_annotation` to `^3.0.0`, and downgraded `custom_lint` to `^0.7.3` to resolve it.
