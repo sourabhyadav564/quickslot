@@ -27,7 +27,7 @@ class BookingsNotifier extends AsyncNotifier<List<Booking>> {
       final bookings =
           raw.map((e) => Booking.fromJson(e as Map<String, dynamic>)).toList();
 
-      // Persist to offline cache (bonus feature)
+      // Persist to offline cache
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString(
         '${_cacheKey}_$userId',
@@ -35,8 +35,8 @@ class BookingsNotifier extends AsyncNotifier<List<Booking>> {
       );
 
       return bookings;
-    } catch (_) {
-      // Fallback: serve stale cached data
+    } on Exception catch (_) {
+      // Only fall back to stale cache for network/IO errors, not parse errors
       final prefs = await SharedPreferences.getInstance();
       final cached = prefs.getString('${_cacheKey}_$userId');
       if (cached != null) {

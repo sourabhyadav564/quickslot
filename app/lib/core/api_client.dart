@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 
 class ApiClient {
   static const String _baseUrl = 'https://quickslotbe-production.up.railway.app';
@@ -11,7 +12,38 @@ class ApiClient {
           baseUrl: _baseUrl,
           connectTimeout: const Duration(seconds: 10),
           receiveTimeout: const Duration(seconds: 10),
-        ));
+        )) {
+    if (kDebugMode) {
+      _dio.interceptors.add(
+        InterceptorsWrapper(
+          onRequest: (options, handler) {
+            debugPrint('┌── REQUEST ─────────────────────────────');
+            debugPrint('│ ${options.method} ${options.uri}');
+            debugPrint('│ Headers: ${options.headers}');
+            if (options.data != null) debugPrint('│ Body: ${options.data}');
+            debugPrint('└────────────────────────────────────────');
+            handler.next(options);
+          },
+          onResponse: (response, handler) {
+            debugPrint('┌── RESPONSE ────────────────────────────');
+            debugPrint('│ ${response.statusCode} ${response.requestOptions.uri}');
+            debugPrint('│ Data: ${response.data}');
+            debugPrint('└────────────────────────────────────────');
+            handler.next(response);
+          },
+          onError: (DioException e, handler) {
+            debugPrint('┌── ERROR ───────────────────────────────');
+            debugPrint('│ ${e.requestOptions.method} ${e.requestOptions.uri}');
+            debugPrint('│ Status: ${e.response?.statusCode}');
+            debugPrint('│ Message: ${e.message}');
+            debugPrint('│ Response: ${e.response?.data}');
+            debugPrint('└────────────────────────────────────────');
+            handler.next(e);
+          },
+        ),
+      );
+    }
+  }
 
   void setUser(String userId) {
     _userId = userId;
