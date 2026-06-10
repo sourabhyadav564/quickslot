@@ -1,6 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import '../screens/user_select_screen.dart';
+import '../screens/login_screen.dart';
 import '../screens/venue_list_screen.dart';
 import '../screens/venue_detail_screen.dart';
 import '../screens/my_bookings_screen.dart';
@@ -21,20 +21,24 @@ final routerProvider = Provider<GoRouter>((ref) {
     routes: [
       GoRoute(
         path: '/',
-        builder: (context, state) => const UserSelectScreen(),
+        builder: (context, state) => const LoginScreen(),
       ),
       GoRoute(
         path: '/venues',
         builder: (context, state) => const VenueListScreen(),
-      ),
-      GoRoute(
-        path: '/venues/:id',
-        builder: (context, state) {
-          final venueId = state.pathParameters['id']!;
-          final venueName =
-              state.uri.queryParameters['name'] ?? 'Venue';
-          return VenueDetailScreen(venueId: venueId, venueName: venueName);
-        },
+        routes: [
+          // Nested so that venue detail is a child of /venues
+          // — back button returns to venue list, not exits the app.
+          GoRoute(
+            path: ':id',
+            builder: (context, state) {
+              final venueId = state.pathParameters['id']!;
+              final venueName =
+                  state.uri.queryParameters['name'] ?? 'Venue';
+              return VenueDetailScreen(venueId: venueId, venueName: venueName);
+            },
+          ),
+        ],
       ),
       GoRoute(
         path: '/bookings',

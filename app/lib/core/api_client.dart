@@ -1,10 +1,10 @@
 import 'package:dio/dio.dart';
 
 class ApiClient {
-  static const String _baseUrl = 'http://172.20.10.2:3000'; // Physical device Wi-Fi connection IP
+  static const String _baseUrl = 'https://quickslotbe-production.up.railway.app';
 
   final Dio _dio;
-  String _userId = 'user_1';
+  String _userId = '';
 
   ApiClient()
       : _dio = Dio(BaseOptions(
@@ -18,7 +18,20 @@ class ApiClient {
   }
 
   Options get _authOptions =>
-      Options(headers: {'X-User-Id': _userId});
+      Options(headers: {'Authorization': 'Bearer $_userId'});
+
+  // ---------- Auth ----------
+
+  /// Returns map with { userId, name } on success; throws DioException on failure.
+  Future<Map<String, dynamic>> login(String username, String password) async {
+    final res = await _dio.post(
+      '/auth/login',
+      data: {'username': username, 'password': password},
+    );
+    return res.data as Map<String, dynamic>;
+  }
+
+  // ---------- Venues ----------
 
   Future<List<dynamic>> getVenues() async {
     final res = await _dio.get('/venues', options: _authOptions);
@@ -33,6 +46,8 @@ class ApiClient {
     );
     return res.data as List<dynamic>;
   }
+
+  // ---------- Bookings ----------
 
   Future<Map<String, dynamic>> bookSlot(String slotId) async {
     final res = await _dio.post(

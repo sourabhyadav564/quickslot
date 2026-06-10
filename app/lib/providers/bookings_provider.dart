@@ -16,8 +16,9 @@ class BookingsNotifier extends AsyncNotifier<List<Booking>> {
   }
 
   Future<List<Booking>> _fetchWithCache() async {
-    final userId = ref.read(authProvider);
-    if (userId == null) return [];
+    final userMap = ref.read(authProvider);
+    if (userMap == null) return [];
+    final userId = userMap['id']!;
 
     final client = ref.read(apiClientProvider);
 

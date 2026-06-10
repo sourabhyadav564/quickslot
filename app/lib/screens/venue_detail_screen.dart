@@ -162,7 +162,7 @@ class _VenueDetailScreenState extends ConsumerState<VenueDetailScreen> {
   Widget build(BuildContext context) {
     final slotParams = SlotParams(widget.venueId, _formattedDate);
     final slotsAsync = ref.watch(slotsProvider(slotParams));
-    final userId = ref.watch(authProvider);
+    final userId = ref.watch(authProvider)?['id'];
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -184,7 +184,7 @@ class _VenueDetailScreenState extends ConsumerState<VenueDetailScreen> {
         actions: [
           IconButton(
             icon: const Icon(Icons.bookmark_outlined, color: AppColors.primary),
-            onPressed: () => context.go('/bookings'),
+            onPressed: () => context.push('/bookings'),
           ),
         ],
       ),

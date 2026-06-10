@@ -15,7 +15,10 @@ class VenueListScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final venuesAsync = ref.watch(venuesProvider);
-    final userId = ref.watch(authProvider) ?? 'user_1';
+    final user = ref.watch(authProvider);
+    final displayInitial = (user?['name'] ?? 'U').isNotEmpty
+        ? (user?['name'] ?? 'U')[0].toUpperCase()
+        : 'U';
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -32,9 +35,9 @@ class VenueListScreen extends ConsumerWidget {
         ),
         actions: [
           Padding(
-            padding: const EdgeInsets.only(right: 8),
+            padding: const EdgeInsets.only(right: 4),
             child: TextButton.icon(
-              onPressed: () => context.go('/bookings'),
+              onPressed: () => context.push('/bookings'),
               icon: const Icon(Icons.bookmark_outlined, color: AppColors.primary, size: 18),
               label: const Text(
                 'My Bookings',
@@ -44,15 +47,53 @@ class VenueListScreen extends ConsumerWidget {
           ),
           Padding(
             padding: const EdgeInsets.only(right: 12),
-            child: CircleAvatar(
-              backgroundColor: AppColors.primary.withOpacity(0.15),
-              radius: 18,
-              child: Text(
-                userId.split('_').last.toUpperCase(),
-                style: const TextStyle(
-                  color: AppColors.primary,
-                  fontSize: 12,
-                  fontWeight: FontWeight.bold,
+            child: GestureDetector(
+              onTap: () {
+                showDialog(
+                  context: context,
+                  builder: (ctx) => AlertDialog(
+                    backgroundColor: AppColors.surface,
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(20)),
+                    title: Text(
+                      user?['name'] ?? 'User',
+                      style: const TextStyle(color: AppColors.onBackground),
+                    ),
+                    content: const Text(
+                      'Do you want to sign out?',
+                      style: TextStyle(color: AppColors.onSurfaceVariant),
+                    ),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.pop(ctx),
+                        child: const Text('Cancel',
+                            style: TextStyle(color: AppColors.onSurfaceVariant)),
+                      ),
+                      ElevatedButton(
+                        onPressed: () {
+                          Navigator.pop(ctx);
+                          ref.read(authProvider.notifier).state = null;
+                          context.go('/');
+                        },
+                        style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.booked),
+                        child: const Text('Sign Out',
+                            style: TextStyle(color: Colors.white)),
+                      ),
+                    ],
+                  ),
+                );
+              },
+              child: CircleAvatar(
+                backgroundColor: AppColors.primary.withOpacity(0.15),
+                radius: 18,
+                child: Text(
+                  displayInitial,
+                  style: const TextStyle(
+                    color: AppColors.primary,
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
             ),
@@ -89,7 +130,7 @@ class _VenueCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: () => context.go('/venues/${venue.id}?name=${Uri.encodeComponent(venue.name)}'),
+      onTap: () => context.push('/venues/${venue.id}?name=${Uri.encodeComponent(venue.name)}'),
       child: Container(
         margin: const EdgeInsets.only(bottom: 16),
         height: 200,

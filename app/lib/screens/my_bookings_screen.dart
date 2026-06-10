@@ -21,7 +21,7 @@ class MyBookingsScreen extends ConsumerWidget {
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios, color: AppColors.onBackground),
-          onPressed: () => context.go('/venues'),
+          onPressed: () => context.pop(),
         ),
         title: const Text(
           AppStrings.myBookings,
