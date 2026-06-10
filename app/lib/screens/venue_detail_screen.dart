@@ -27,6 +27,7 @@ class VenueDetailScreen extends ConsumerStatefulWidget {
 
 class _VenueDetailScreenState extends ConsumerState<VenueDetailScreen> {
   late DateTime _selectedDate;
+  _TimeFilter _filter = _TimeFilter.all;
 
   @override
   void initState() {
@@ -230,6 +231,52 @@ class _VenueDetailScreenState extends ConsumerState<VenueDetailScreen> {
             ),
           ),
 
+          // Time-of-day filter chips
+          Container(
+            color: AppColors.background,
+            padding: const EdgeInsets.fromLTRB(12, 8, 12, 4),
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: _TimeFilter.values.map((f) {
+                  final selected = _filter == f;
+                  return Padding(
+                    padding: const EdgeInsets.only(right: 8),
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 200),
+                      child: FilterChip(
+                        label: Text(f.label),
+                        selected: selected,
+                        onSelected: (_) => setState(() => _filter = f),
+                        backgroundColor: AppColors.surfaceVariant,
+                        selectedColor: AppColors.primary.withOpacity(0.25),
+                        checkmarkColor: AppColors.primary,
+                        labelStyle: TextStyle(
+                          color: selected
+                              ? AppColors.primary
+                              : AppColors.onSurfaceVariant,
+                          fontWeight: selected
+                              ? FontWeight.w700
+                              : FontWeight.normal,
+                          fontSize: 12,
+                        ),
+                        side: BorderSide(
+                          color: selected
+                              ? AppColors.primary
+                              : AppColors.primary.withOpacity(0.15),
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        showCheckmark: false,
+                      ),
+                    ),
+                  );
+                }).toList(),
+              ),
+            ),
+          ),
+
           // Legend
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
@@ -259,13 +306,16 @@ class _VenueDetailScreenState extends ConsumerState<VenueDetailScreen> {
                     .read(slotsProvider(slotParams).notifier)
                     .refresh(),
               ),
-              data: (slots) => SingleChildScrollView(
-                child: SlotGrid(
-                  slots: slots,
-                  currentUserId: userId,
-                  onTap: _confirmAndBook,
-                ),
-              ),
+              data: (slots) {
+                final filtered = _filter.apply(slots);
+                return SingleChildScrollView(
+                  child: SlotGrid(
+                    slots: filtered,
+                    currentUserId: userId,
+                    onTap: _confirmAndBook,
+                  ),
+                );
+              },
             ),
           ),
         ],
@@ -293,5 +343,28 @@ class _LegendDot extends StatelessWidget {
         Text(label, style: const TextStyle(color: AppColors.onSurfaceVariant, fontSize: 11)),
       ],
     );
+  }
+}
+
+// ── Time-of-day filter ──────────────────────────────────────────────────────
+
+enum _TimeFilter {
+  all('All', 0, 24),
+  morning('🌅 Morning', 6, 12),
+  afternoon('☀️ Afternoon', 12, 17),
+  evening('🌆 Evening', 17, 22);
+
+  final String label;
+  final int startHour;
+  final int endHour;
+
+  const _TimeFilter(this.label, this.startHour, this.endHour);
+
+  List<Slot> apply(List<Slot> slots) {
+    if (this == _TimeFilter.all) return slots;
+    return slots.where((s) {
+      final hour = int.tryParse(s.startTime.split(':').first) ?? 0;
+      return hour >= startHour && hour < endHour;
+    }).toList();
   }
 }
