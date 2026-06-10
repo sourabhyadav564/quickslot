@@ -34,12 +34,16 @@ class BookingsNotifier extends AsyncNotifier<List<Booking>> {
         jsonEncode(bookings.map((b) => b.toJson()).toList()),
       );
 
+      // Mark data as fresh
+      ref.read(bookingsIsStaleProvider.notifier).state = false;
       return bookings;
     } on Exception catch (_) {
       // Only fall back to stale cache for network/IO errors, not parse errors
       final prefs = await SharedPreferences.getInstance();
       final cached = prefs.getString('${_cacheKey}_$userId');
       if (cached != null) {
+        // Mark data as stale (coming from cache)
+        ref.read(bookingsIsStaleProvider.notifier).state = true;
         final list = jsonDecode(cached) as List<dynamic>;
         return list
             .map((e) => Booking.fromJson(e as Map<String, dynamic>))

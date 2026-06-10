@@ -13,6 +13,7 @@ class MyBookingsScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final bookingsAsync = ref.watch(bookingsProvider);
+    final isStale = ref.watch(bookingsIsStaleProvider);
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -38,7 +39,53 @@ class MyBookingsScreen extends ConsumerWidget {
           ),
         ],
       ),
-      body: bookingsAsync.when(
+      body: Column(
+        children: [
+          // Stale cache banner — shown when offline data is displayed
+          AnimatedSwitcher(
+            duration: const Duration(milliseconds: 300),
+            child: isStale
+                ? Container(
+                    key: const ValueKey('stale_banner'),
+                    width: double.infinity,
+                    color: const Color(0xFFF59E0B).withOpacity(0.12),
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.wifi_off_rounded,
+                            color: Color(0xFFF59E0B), size: 16),
+                        const SizedBox(width: 10),
+                        const Expanded(
+                          child: Text(
+                            'Offline — showing cached bookings',
+                            style: TextStyle(
+                              color: Color(0xFFF59E0B),
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                        GestureDetector(
+                          onTap: () =>
+                              ref.read(bookingsProvider.notifier).refresh(),
+                          child: const Text(
+                            'Retry',
+                            style: TextStyle(
+                              color: Color(0xFFF59E0B),
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700,
+                              decoration: TextDecoration.underline,
+                              decorationColor: Color(0xFFF59E0B),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  )
+                : const SizedBox.shrink(key: ValueKey('no_banner')),
+          ),
+          Expanded(
+            child: bookingsAsync.when(
         loading: () => const AppLoadingWidget(message: 'Loading bookings...'),
         error: (e, _) => AppErrorWidget(
           message: 'Could not load bookings.\nShowing cached data if available.\n${e.toString()}',
@@ -141,6 +188,9 @@ class MyBookingsScreen extends ConsumerWidget {
             ),
           );
         },
+          ),
+          ),
+        ],
       ),
     );
   }
